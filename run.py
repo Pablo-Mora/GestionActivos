@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.routers import acta
 
 from app.routers import (
     empleados,
@@ -28,3 +29,13 @@ app.include_router(licencias_software.router, prefix="/licencias", tags=["Licenc
 app.include_router(accesos_web.router, prefix="/accesos", tags=["Accesos Web"])
 app.include_router(responsables_entrega.router, prefix="/responsables", tags=["Responsables Entrega"])
 app.include_router(aprobaciones.router, prefix="/aprobaciones", tags=["Aprobaciones"])
+app.include_router(acta.router)
+
+
+app = FastAPI()
+
+app.include_router(acta.router)
+
+@app.get("/")
+def root():
+    return {"message": "API funcionando correctamente"}
