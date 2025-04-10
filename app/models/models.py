@@ -1,88 +1,87 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, Date, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
+from app.db.db import Base
 
-Base = declarative_base()
-
+# ---------- Empleados ----------
 class Empleado(Base):
-    __tablename__ = 'Empleados'
+    __tablename__ = "empleados"
 
-    Id = Column(Integer, primary_key=True, autoincrement=True)
+    Id = Column(Integer, primary_key=True, index=True)
     Fecha = Column(Date)
-    ClaseActa = Column(String(100))
-    Nombre = Column(String(100))
-    Identificacion = Column(String(50))
-    Cargo = Column(String(100))
-    Dependencia = Column(String(100))
-    UbicacionOficina = Column(String(100))
+    ClaseActa = Column(String)
+    Nombre = Column(String)
+    Identificacion = Column(String, unique=True, index=True)
+    Cargo = Column(String)
+    Dependencia = Column(String)
+    UbicacionOficina = Column(String)
 
-    activos_hardware = relationship("ActivoHardware", back_populates="empleado")
-    licencias_software = relationship("LicenciaSoftware", back_populates="empleado")
-    accesos_web = relationship("AccesoWeb", back_populates="empleado")
-    responsables_entrega = relationship("ResponsableEntrega", back_populates="empleado")
-    aprobaciones = relationship("Aprobacion", back_populates="empleado")
+    activos_hardware = relationship("ActivoHardware", back_populates="empleado", cascade="all, delete-orphan")
+    licencias_software = relationship("LicenciaSoftware", back_populates="empleado", cascade="all, delete-orphan")
+    accesos_web = relationship("AccesoWeb", back_populates="empleado", cascade="all, delete-orphan")
+    responsables_entrega = relationship("ResponsableEntrega", back_populates="empleado", cascade="all, delete-orphan")
+    aprobaciones = relationship("Aprobacion", back_populates="empleado", cascade="all, delete-orphan")
 
-
+# ---------- Activos Hardware ----------
 class ActivoHardware(Base):
-    __tablename__ = 'ActivosHardware'
+    __tablename__ = "activos_hardware"
 
-    Id = Column(Integer, primary_key=True, autoincrement=True)
-    EmpleadoId = Column(Integer, ForeignKey('Empleados.Id'))
-    TipoHardware = Column(String(100))
+    Id = Column(Integer, primary_key=True, index=True)
+    EmpleadoId = Column(Integer, ForeignKey("empleados.Id"))
+    TipoHardware = Column(String)
     Cantidad = Column(Integer)
-    Marca = Column(String(100))
-    Modelo = Column(String(100))
-    Serial = Column(String(100))
-    Observaciones = Column(String(255))
+    Marca = Column(String)
+    Modelo = Column(String)
+    Serial = Column(String)
+    Observaciones = Column(String)
 
     empleado = relationship("Empleado", back_populates="activos_hardware")
 
-
+# ---------- Licencias Software ----------
 class LicenciaSoftware(Base):
-    __tablename__ = 'LicenciasSoftware'
+    __tablename__ = "licencias_software"
 
-    Id = Column(Integer, primary_key=True, autoincrement=True)
-    EmpleadoId = Column(Integer, ForeignKey('Empleados.Id'))
-    NombreLicencia = Column(String(100))
-    Usuario = Column(String(100))
-    Contrasena = Column(String(100))
+    Id = Column(Integer, primary_key=True, index=True)
+    EmpleadoId = Column(Integer, ForeignKey("empleados.Id"))
+    NombreLicencia = Column(String)
+    Usuario = Column(String)
+    Contrasena = Column(String)
     ObligadoCambio = Column(Boolean)
 
     empleado = relationship("Empleado", back_populates="licencias_software")
 
-
+# ---------- Accesos Web ----------
 class AccesoWeb(Base):
-    __tablename__ = 'AccesosWeb'
+    __tablename__ = "accesos_web"
 
-    Id = Column(Integer, primary_key=True, autoincrement=True)
-    EmpleadoId = Column(Integer, ForeignKey('Empleados.Id'))
-    URL = Column(String(255))
-    Usuario = Column(String(100))
-    Contrasena = Column(String(100))
+    Id = Column(Integer, primary_key=True, index=True)
+    EmpleadoId = Column(Integer, ForeignKey("empleados.Id"))
+    URL = Column(String)
+    Usuario = Column(String)
+    Contrasena = Column(String)
     ObligadoCambio = Column(Boolean)
 
     empleado = relationship("Empleado", back_populates="accesos_web")
 
-
+# ---------- Responsables Entrega ----------
 class ResponsableEntrega(Base):
-    __tablename__ = 'ResponsablesEntrega'
+    __tablename__ = "responsables_entrega"
 
-    Id = Column(Integer, primary_key=True, autoincrement=True)
-    EmpleadoId = Column(Integer, ForeignKey('Empleados.Id'))
-    Recibe = Column(String(100))
-    Entrega = Column(String(100))
-    RolRecibe = Column(String(100))
-    RolEntrega = Column(String(100))
+    Id = Column(Integer, primary_key=True, index=True)
+    EmpleadoId = Column(Integer, ForeignKey("empleados.Id"))
+    Recibe = Column(String)
+    Entrega = Column(String)
+    RolRecibe = Column(String)
+    RolEntrega = Column(String)
 
     empleado = relationship("Empleado", back_populates="responsables_entrega")
 
-
+# ---------- Aprobaciones ----------
 class Aprobacion(Base):
-    __tablename__ = 'Aprobaciones'
+    __tablename__ = "aprobaciones"
 
-    Id = Column(Integer, primary_key=True, autoincrement=True)
-    EmpleadoId = Column(Integer, ForeignKey('Empleados.Id'))
-    AprobadoPor = Column(String(100))
-    CargoAprobador = Column(String(100))
+    Id = Column(Integer, primary_key=True, index=True)
+    EmpleadoId = Column(Integer, ForeignKey("empleados.Id"))
+    AprobadoPor = Column(String)
+    CargoAprobador = Column(String)
 
     empleado = relationship("Empleado", back_populates="aprobaciones")

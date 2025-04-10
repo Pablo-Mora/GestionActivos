@@ -27,9 +27,6 @@ class EmpleadoUpdate(BaseModel):
     class Config:
         from_attributes = True
 
-from pydantic import BaseModel
-from datetime import date
-
 class EmpleadoOut(BaseModel):
     Id: int
     Fecha: date
@@ -75,7 +72,7 @@ class ActivoHardwareOut(BaseModel):
     Marca: str
     Modelo: str
     Serial: str
-    Observaciones: str
+    Observaciones: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -188,12 +185,32 @@ class AprobacionUpdate(BaseModel):
 
     class Config:
         from_attributes = True
-        
+
 class AprobacionOut(BaseModel):
     Id: int
     EmpleadoId: int
     AprobadoPor: str
     CargoAprobador: str
+
+    class Config:
+        from_attributes = True
+
+# ---------- Empleado Detallado ----------
+class EmpleadoDetalleOut(BaseModel):
+    Id: int
+    Fecha: date
+    ClaseActa: str
+    Nombre: str
+    Identificacion: str
+    Cargo: str
+    Dependencia: str
+    UbicacionOficina: str
+
+    activos_hardware: List[ActivoHardwareOut] = []
+    licencias_software: List[LicenciaSoftwareOut] = []
+    accesos_web: List[AccesoWebOut] = []
+    responsables_entrega: List[ResponsableEntregaOut] = []
+    aprobaciones: List[AprobacionOut] = []
 
     class Config:
         from_attributes = True

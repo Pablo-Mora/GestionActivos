@@ -1,29 +1,44 @@
-from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.db.db import get_db
-from app.schemas.schemas import ActivoHardwareCreate, ActivoHardwareUpdate,ActivoHardwareOut
-from app.crud import activos_hardware
+from app.models.models import ActivoHardware
+from app.schemas import ActivoHardwareCreate, ActivoHardwareUpdate
+from typing import Optional
 
-router = APIRouter(prefix="/hardware", tags=["Activos Hardware"])
+def create(db: Session, data: ActivoHardwareCreate):
+    nuevo = ActivoHardware(**data.model_dump())
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    return nuevo
 
-@router.get("/", response_model=list[ActivoHardwareOut])
-def get_all(db: Session = Depends(get_db)):
-    return activos_hardware.get_all(db)
+def get_all(db: Session, tipo: Optional[str] = None, marca: Optional[str] = None, empleado_id: Optional[int] = None):
+    query = db.query(ActivoHardware)
+    if tipo:
+        query = query.filter(ActivoHardware.TipoHardware.ilike(f"%{tipo}%"))
+    if marca:
+        query = query.filter(ActivoHardware.Marca.ilike(f"%{marca}%"))
+    if empleado_id:
+        query = query.filter(ActivoHardware.EmpleadoId == empleado_id)
+    return query.all()
 
-@router.post("/", response_model=ActivoHardwareOut)
-def create(data: ActivoHardwareCreate, db: Session = Depends(get_db)):
-    return activos_hardware.create(db, data)
+def get_by_id(db: Session, id: int):
+    return db.query(ActivoHardware).filter(ActivoHardware.Id == id).first()
 
-@router.put("/{id}", response_model=ActivoHardwareOut)
-def update(id: int, data: ActivoHardwareUpdate, db: Session = Depends(get_db)):
-    updated = activos_hardware.update(db, id, data)
-    if not updated:
-        raise HTTPException(status_code=404, detail="Activo no encontrado")
-    return updated
+def get_by_empleado_id(db: Session, empleado_id: int):
+    return db.query(ActivoHardware).filter(ActivoHardware.EmpleadoId == empleado_id).all()
 
-@router.delete("/{id}")
-def delete(id: int, db: Session = Depends(get_db)):
-    deleted = activos_hardware.delete(db, id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Activo no encontrado")
-    return {"message": "Activo eliminado correctamente"}
+def update(db: Session, id: int, data: ActivoHardwareUpdate):
+    activo = db.query(ActivoHardware).filter(ActivoHardware.Id == id).first()
+    if not activo:
+        return None
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(activo, key, value)
+    db.commit()
+    db.refresh(activo)
+    return activo
+
+def delete(db: Session, id: int):
+    activo = db.query(ActivoHardware).filter(ActivoHardware.Id == id).first()
+    if activo:
+        db.delete(activo)
+        db.commit()
+    return activo

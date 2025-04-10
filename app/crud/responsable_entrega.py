@@ -1,61 +1,49 @@
-from app.db.db import get_db
+from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from app.models import ResponsableEntrega
-from typing import List, Optional
+from app.schemas import ResponsableEntregaCreate, ResponsableEntregaUpdate
 
-def get_all_responsables() -> List[dict]:
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM ResponsablesEntrega")
-    columns = [column[0] for column in cursor.description]
-    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-    conn.close()
-    return results
+# Crear
+def create(db: Session, data: ResponsableEntregaCreate):
+    nuevo = ResponsableEntrega(**data.model_dump())
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    return nuevo
 
-def get_responsable_by_id(id_responsable: int) -> Optional[dict]:
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM ResponsablesEntrega WHERE Id = ?", id_responsable)
-    row = cursor.fetchone()
-    if row:
-        columns = [column[0] for column in cursor.description]
-        result = dict(zip(columns, row))
-    else:
-        result = None
-    conn.close()
-    return result
+# Obtener todos con filtros opcionales
+def get_filtered(db: Session, empleado_id=None, recibe=None, entrega=None):
+    query = db.query(ResponsableEntrega)
 
-def create_responsable(responsable: ResponsableEntrega) -> None:
-    conn = get_db()
-    cursor = conn.cursor()
-    query = """
-        INSERT INTO ResponsablesEntrega (EmpleadoId, Recibe, Entrega, RolRecibe, RolEntrega)
-        VALUES (?, ?, ?, ?, ?)
-    """
-    cursor.execute(query, responsable.EmpleadoId, responsable.Recibe, responsable.Entrega,
-                   responsable.RolRecibe, responsable.RolEntrega)
-    conn.commit()
-    conn.close()
+    if empleado_id is not None:
+        query = query.filter(ResponsableEntrega.EmpleadoId == empleado_id)
+    if recibe is not None:
+        query = query.filter(ResponsableEntrega.Recibe.ilike(f"%{recibe}%"))
+    if entrega is not None:
+        query = query.filter(ResponsableEntrega.Entrega.ilike(f"%{entrega}%"))
 
-def update_responsable(id_responsable: int, responsable: ResponsableEntrega) -> bool:
-    conn = get_db()
-    cursor = conn.cursor()
-    query = """
-        UPDATE ResponsablesEntrega
-        SET EmpleadoId=?, Recibe=?, Entrega=?, RolRecibe=?, RolEntrega=?
-        WHERE Id=?
-    """
-    cursor.execute(query, responsable.EmpleadoId, responsable.Recibe, responsable.Entrega,
-                   responsable.RolRecibe, responsable.RolEntrega, id_responsable)
-    conn.commit()
-    updated = cursor.rowcount > 0
-    conn.close()
-    return updated
+    return query.all()
 
-def delete_responsable(id_responsable: int) -> bool:
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM ResponsablesEntrega WHERE Id = ?", id_responsable)
-    conn.commit()
-    deleted = cursor.rowcount > 0
-    conn.close()
-    return deleted
+# Obtener por ID
+def get_by_id(db: Session, id: int):
+    return db.query(ResponsableEntrega).filter(ResponsableEntrega.Id == id).first()
+
+# Actualizar
+def update(db: Session, id: int, data: ResponsableEntregaUpdate):
+    item = get_by_id(db, id)
+    if not item:
+        return None
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(item, key, value)
+    db.commit()
+    db.refresh(item)
+    return item
+
+# Eliminar
+def delete(db: Session, id: int):
+    item = get_by_id(db, id)
+    if not item:
+        return None
+    db.delete(item)
+    db.commit()
+    return item

@@ -1,60 +1,46 @@
-from app.db.db import get_db
+from sqlalchemy.orm import Session
 from app.models import Aprobacion
-from typing import List, Optional
+from app.schemas import AprobacionCreate, AprobacionUpdate
 
-def get_all_aprobaciones() -> List[dict]:
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Aprobaciones")
-    columns = [column[0] for column in cursor.description]
-    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-    conn.close()
-    return results
+# Crear
+def create(db: Session, data: AprobacionCreate):
+    nueva = Aprobacion(**data.model_dump())
+    db.add(nueva)
+    db.commit()
+    db.refresh(nueva)
+    return nueva
 
-def get_aprobacion_by_id(id_aprobacion: int) -> Optional[dict]:
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Aprobaciones WHERE Id = ?", id_aprobacion)
-    row = cursor.fetchone()
-    if row:
-        columns = [column[0] for column in cursor.description]
-        result = dict(zip(columns, row))
-    else:
-        result = None
-    conn.close()
-    return result
+# Obtener todos con filtros dinámicos
+def get_filtered(db: Session, empleado_id=None, aprobado_por=None):
+    query = db.query(Aprobacion)
 
-def create_aprobacion(aprobacion: Aprobacion) -> None:
-    conn = get_db()
-    cursor = conn.cursor()
-    query = """
-        INSERT INTO Aprobaciones (EmpleadoId, AprobadoPor, CargoAprobador)
-        VALUES (?, ?, ?)
-    """
-    cursor.execute(query, aprobacion.EmpleadoId, aprobacion.AprobadoPor, aprobacion.CargoAprobador)
-    conn.commit()
-    conn.close()
+    if empleado_id is not None:
+        query = query.filter(Aprobacion.EmpleadoId == empleado_id)
+    if aprobado_por is not None:
+        query = query.filter(Aprobacion.AprobadoPor.ilike(f"%{aprobado_por}%"))
 
-def update_aprobacion(id_aprobacion: int, aprobacion: Aprobacion) -> bool:
-    conn = get_db()
-    cursor = conn.cursor()
-    query = """
-        UPDATE Aprobaciones
-        SET EmpleadoId=?, AprobadoPor=?, CargoAprobador=?
-        WHERE Id=?
-    """
-    cursor.execute(query, aprobacion.EmpleadoId, aprobacion.AprobadoPor,
-                   aprobacion.CargoAprobador, id_aprobacion)
-    conn.commit()
-    updated = cursor.rowcount > 0
-    conn.close()
-    return updated
+    return query.all()
 
-def delete_aprobacion(id_aprobacion: int) -> bool:
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM Aprobaciones WHERE Id = ?", id_aprobacion)
-    conn.commit()
-    deleted = cursor.rowcount > 0
-    conn.close()
-    return deleted
+# Obtener por ID
+def get_by_id(db: Session, id: int):
+    return db.query(Aprobacion).filter(Aprobacion.Id == id).first()
+
+# Actualizar
+def update(db: Session, id: int, data: AprobacionUpdate):
+    item = get_by_id(db, id)
+    if not item:
+        return None
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(item, key, value)
+    db.commit()
+    db.refresh(item)
+    return item
+
+# Eliminar
+def delete(db: Session, id: int):
+    item = get_by_id(db, id)
+    if not item:
+        return None
+    db.delete(item)
+    db.commit()
+    return item
