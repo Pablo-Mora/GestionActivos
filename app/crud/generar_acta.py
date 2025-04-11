@@ -1,5 +1,8 @@
+from docxtpl import DocxTemplate
+import os
+from datetime import datetime
 from sqlalchemy.orm import Session
-from app.models.models import Empleado, ActivoHardware, LicenciaSoftware, AccesoWeb, ResponsableEntrega, Aprobacion
+from app.models.models import Empleado
 
 
 def get_empleado_con_todo(db: Session, identificacion: str):
@@ -7,7 +10,6 @@ def get_empleado_con_todo(db: Session, identificacion: str):
     if not empleado:
         return None
 
-    # Diccionario de datos básicos del empleado
     datos_empleado = {
         "FECHA": empleado.Fecha.strftime("%d/%m/%Y") if empleado.Fecha else "",
         "CLASE_ACTA": empleado.ClaseActa,
@@ -18,7 +20,6 @@ def get_empleado_con_todo(db: Session, identificacion: str):
         "UBICACION": empleado.UbicacionOficina,
     }
 
-    # Hardware
     hardware_items = [
         {
             "NOMBRE": h.TipoHardware,
@@ -31,7 +32,6 @@ def get_empleado_con_todo(db: Session, identificacion: str):
         for h in empleado.activos_hardware
     ]
 
-    # Licencias
     licencias_items = [
         {
             "NOMBRE": l.NombreLicencia,
@@ -41,7 +41,6 @@ def get_empleado_con_todo(db: Session, identificacion: str):
         for l in empleado.licencias_software
     ]
 
-    # Accesos Web (si lo necesitas en el acta)
     accesos_items = [
         {
             "URL": a.URL,
@@ -52,7 +51,6 @@ def get_empleado_con_todo(db: Session, identificacion: str):
         for a in empleado.accesos_web
     ]
 
-    # Responsables
     responsable = empleado.responsables_entrega[0] if empleado.responsables_entrega else None
     datos_responsable = {
         "ENTREGA": responsable.Entrega if responsable else "",
@@ -61,21 +59,39 @@ def get_empleado_con_todo(db: Session, identificacion: str):
         "ROL_RECIBE": responsable.RolRecibe if responsable else "",
     }
 
-    # Aprobaciones
     aprobacion = empleado.aprobaciones[0] if empleado.aprobaciones else None
     datos_aprobacion = {
         "APROBADO_POR": aprobacion.AprobadoPor if aprobacion else "",
         "CARGO_APROBADOR": aprobacion.CargoAprobador if aprobacion else "",
     }
 
-    # Unificar todo para enviar al render de Word
     contexto = {
         **datos_empleado,
         **datos_responsable,
         **datos_aprobacion,
         "hardware_items": hardware_items,
         "licencias_items": licencias_items,
-        "accesos_items": accesos_items,  # si lo usas en el documento
+        "accesos_items": accesos_items,
     }
 
     return contexto
+
+
+def generar_documento_word(contexto: dict, output_path: str = None):
+    plantilla_path = os.path.join("app", "templates", "plantilla_activos.docx")
+    doc = DocxTemplate(plantilla_path)
+    doc.render(contexto)
+
+    clase_acta = contexto.get("CLASE_ACTA", "ACTA").upper().replace(" ", "_")
+    nombre_empleado = contexto.get("NOMBRE", "EMPLEADO").upper().replace(" ", "_")
+    fecha = datetime.now().strftime("%d-%m-%y")
+
+    nombre_archivo = f"ACTA_{clase_acta}_FECHA_{fecha}_{nombre_empleado}.docx"
+
+    if not output_path:
+        output_path = os.path.join("app", "static", "downloads", nombre_archivo)
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    doc.save(output_path)
+
+    return output_path

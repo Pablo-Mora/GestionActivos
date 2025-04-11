@@ -1,6 +1,9 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from config import Config
+
+# Aquí defines Base
+Base = declarative_base()
 
 def get_connection_string():
     cfg = Config.DB_CONFIG 
@@ -13,10 +16,10 @@ def get_connection_string():
         return (
             f"mssql+pyodbc://{cfg['user']}:{cfg['password']}"
             f"@{cfg['server']}/{cfg['database']}?driver={cfg['driver'].replace(' ', '+')}"
-            )
+        )
 
 engine = create_engine(get_connection_string())
-SessionLocal = sessionmaker(autocommit = False, autoflush= False,bind = engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_db():
     db = SessionLocal()

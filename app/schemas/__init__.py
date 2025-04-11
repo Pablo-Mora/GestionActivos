@@ -2,7 +2,7 @@ from .schemas import (
     EmpleadoCreate,
     EmpleadoUpdate,
     EmpleadoOut,
-
+    EmpleadoDetalleOut,
     ActivoHardwareCreate,
     ActivoHardwareUpdate,
     ActivoHardwareOut,
